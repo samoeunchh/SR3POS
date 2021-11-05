@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SR3POS.Data;
 using SR3POS.Models;
+using System.Linq.Dynamic.Core;
 
 namespace SR3POS.Controllers
 {
@@ -20,12 +21,60 @@ namespace SR3POS.Controllers
         }
 
         // GET: Products
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            var applicationDbContext = _context.Product.Include(p => p.Category).Include(p => p.Unit);
-            return View(await applicationDbContext.ToListAsync());
+            return View();
         }
-
+        public async Task<JsonResult> GetData()
+        {
+            JsonResult result;
+            try
+            {
+                var draw = HttpContext.Request.Form["draw"].FirstOrDefault();
+                var start = Request.Form["start"].FirstOrDefault();
+                var length = Request.Form["length"].FirstOrDefault();
+                var sortColumn = Request.Form["columns[" + Request.Form["order[0][column]"].FirstOrDefault() + "][name]"].FirstOrDefault();
+                var sortColumnDirection = Request.Form["order[0][dir]"].FirstOrDefault();
+                var searchValue = Request.Form["search[value]"].FirstOrDefault();
+                int pageSize = length != null ? Convert.ToInt32(length) : 0;
+                int skip = start != null ? Convert.ToInt32(start) : 0;
+                int recordsTotal = 0;
+                var data1 = (from p in _context.Product
+                             join u in _context.Unit on p.UnitId equals u.UnitId
+                             join c in _context.Category on p.CategoryId equals c.CategoryId
+                             select new { 
+                                 p.ProductName,
+                                 p.ProductId,
+                                 p.Barcode,
+                                 p.OnHand,
+                                 p.Cost,
+                                 UnitId=u.UnitName,
+                                 CategoryId=c.CategoryName
+                             });
+                //Search
+                if (!string.IsNullOrEmpty(searchValue))
+                {
+                    data1 = data1.Where(x => x.Barcode.StartsWith(searchValue) ||
+                    x.ProductName.Contains(searchValue));
+                }
+                //Sort
+                if(!string.IsNullOrEmpty(sortColumn) && !string.IsNullOrEmpty(sortColumnDirection))
+                {
+                    data1 = data1.OrderBy(sortColumn + " " + sortColumnDirection);
+                }
+                //total number of rows counts   
+                recordsTotal = await data1.CountAsync();
+                //Paging   
+                var data = await data1.Skip(skip).Take(pageSize).ToListAsync();
+                //Returning Json Data  
+                result = Json(new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = data });
+            }
+            catch
+            {
+                result = null;
+            }
+            return result;
+        }
         // GET: Products/Details/5
         public async Task<IActionResult> Details(Guid? id)
         {

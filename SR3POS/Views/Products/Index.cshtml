@@ -1,71 +1,77 @@
-﻿@model IEnumerable<SR3POS.Models.Product>
-
-@{
+﻿@{
     ViewData["Title"] = "Index";
 }
 
 <h1>Index</h1>
-
+@Html.AntiForgeryToken()
 <p>
     <a asp-action="Create">Create New</a>
 </p>
-<table class="table">
+<table class="table" id="t1">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.ProductName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Barcode)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.OnHand)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Cost)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Category)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Unit)
-            </th>
+            <th>Product Name</th>
+            <th>Barcode</th>
+            <th>OnHand</th>
+            <th>Cost</th>
+            <th>Category</th>
+            <th>Unit</th>
+            <th></th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.ProductName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Barcode)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.OnHand)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Cost)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Category.CategoryName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Unit.UnitName)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.ProductId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.ProductId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.ProductId">Delete</a>
-            </td>
-        </tr>
-}
     </tbody>
 </table>
+@section Scripts{ 
+    <script>
+        $(document).ready(function () {
+            $("#t1").DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "ajax": {
+                    "url": "Products/GetData",
+                    "type": "POST",
+                    "dataType": "json"
+                },
+                "columns": [
+                    { "data": "productName", "name": "productName" },
+                    { "data": "barcode", "name": "barcode" },
+                    { "data": "onHand", "name": "onHand" },
+                    { "data": "cost", "name": "cost" },
+                    { "data": "categoryId", "name": "categoryId" },
+                    { "data": "unitId", "name": "unitId" },
+                    {
+                        "render": function (data, type, full, meta) {
+                            //console.log(full);
+                            return '<a class="btn btn-info" href="Products/Edit/' + full.productId + '"><i class="fa fa-edit"></i></a>';
+                        }, orderable: false
+                    },
+                    {
+                        data: null, render: function (data, type, row) {
+                            return "<a href='#' class='btn btn-danger' onclick=DeleteData('" + row.productId + "');><i class='fa fa-trash'></i></a>";
+                        }, orderable: false
+                    }
+                ]
+            });
+        });
+        function DeleteData(id) {
+            if (confirm("Do you want to delete this record?")) {
+                var token = $("input[name=__RequestVerificationToken]").val();
+                $.ajax({
+                    method: "POST",
+                    url: "Products/Delete/" + id,
+                    dataType: "Html",
+                    data: { id: id, __RequestVerificationToken: token },
+                    success: function () {
+                        var table = $("#t1").DataTable();
+                        table.draw();
+                    }, error: function (error) {
+                        console.log(error);
+                    }
+                });
+            }
+        }
+    </script>
+}
