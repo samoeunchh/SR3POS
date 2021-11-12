@@ -76,7 +76,6 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
-        var options = "";
         var productPrices = [];
         $(document).ready(function () {
             //Save button on click
@@ -117,19 +116,6 @@
                 });
             });
             //Get Unit
-            $.ajax({
-                method: "GET",
-                dataType: "json",
-                url: "GetUnits",
-                success: function (data) {
-                    $.each(data, function (i, v) {
-                        options += "<option value='"+ v.unitId +"'>"+ v.unitName +"</option>";
-                    });
-                },
-                error: function (error) {
-                    console.log(error);
-                }
-            });
             $("#AddRow").click(function () {
                 var row = "<tr><td><select class='form-control' name='unit[]'>" + options + "</select></td>";
                 row += "<td><input class='form-control' name='price[]'/></td>";
